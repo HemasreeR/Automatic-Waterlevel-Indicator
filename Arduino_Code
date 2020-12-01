@@ -1,0 +1,60 @@
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(10, 11);  //Rx and Tx of arduino
+#define trigPin 9                // trigpin and echopin may vary based on the connections made
+#define echoPin 6
+void setup() 
+{
+  Serial.begin (9600);                  //set baud rates
+  Serial.println("Started");
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+//Trigpin emits ultrasonic waves and when this waves reaches the water surface, gets reflected.Echopin receives the reflected waves and calculates the time taken between transmitting and receiving.
+
+void loop()                                   //water level is monitored always so this will be an infinite loop 
+{
+  long duration, distance;
+  digitalWrite(trigPin, LOW);                //initially set trig to low to ensure that it would be off  
+  delayMicroseconds(2);              
+  digitalWrite(trigPin, HIGH);               //start transmitting waves
+  delayMicroseconds(10);           
+  digitalWrite(trigPin, LOW);                //stop transmitting waves
+  duration = pulseIn(echoPin, HIGH);         //set echo pin high and calculate time taken
+  distance = (duration/2) / 29.1;
+  if (distance == Min_distance)               //Min_distance=distance between ultrasonic sensor and water level(water level in the tank which could cause overflow)
+  {
+    gsmgps("The water tank is about to be filled");
+  }
+  else if(distance>=Max_distance)              //Max_distance=distance between ultrasonic sensor and water level(water level in the tank which could cause underflow)
+  {
+    gsmgps("Water level is low.Switch on the motor");
+    Serial.println("water level is low.Switch on the motor");
+  }
+  delay(500);
+}
+
+
+void gsmgps(String s)                             //gsm fuction which sends messages to the operator
+{
+ int i=0;
+ boolean flag=true;
+
+ if(flag)
+        {Serial.println("Sending message through GSM Modem");
+      mySerial.begin(9600);
+      mySerial.print("\r");
+      delay(1000);                  
+      mySerial.print("AT+CMGF=1");        //set our GSM module to Text mode first
+      delay(1000);
+  /*Replace XXXXXXXXXX to 10 digit mobile number &  ZZ to 2 digit country code*/
+      mySerial.print("AT+CMGS=\"+ZZXXXXXXXXXX\"\r");    
+      delay(1000);
+  //The text of the message to be sent.
+      mySerial.print(s);     //mySerial println writes data to serial port if the tx(arduino) and this will be captured by gsm module through its rx pin
+      delay(1000);
+
+      flag=false;
+    }
+}
+
+
